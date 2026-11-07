@@ -27,4 +27,11 @@ bun run radar    # roda o radar agora (modo CronJob/once)
 bun start        # cron interno, segundas 09h BRT
 ```
 
+## Testes
+
+```bash
+bun test         # testa sanitização de release notes via @juninmd/digest-kit
+bun run typecheck
+```
+
 Sem `GITHUB_TOKEN` funciona, mas a API de releases limita em 60 req/h.
