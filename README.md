@@ -1,5 +1,9 @@
 # upstream-radar
 
+<p align="center">
+  <img src="docs/readme/hero.png" alt="Banner ilustrativo do Upstream Radar (mockup com dados fictícios)" width="100%">
+</p>
+
 Monta a watchlist **do seu próprio código** e manda no Telegram só as releases que te afetam.
 
 Newsletter de release notes é ruído porque fala de coisas que você não usa. Este bot faz o contrário: varre os repos clonados na sua máquina, conta em quantos deles cada dependência aparece (npm + GitHub Actions), acompanha o topo dessa lista e, quando sai versão nova, pede para uma IA do cluster ler as notas sabendo **qual versão você usa e em quantos repos**. O resultado chega classificado — dá para agir agora, dá para agendar, ou não te toca.
@@ -191,6 +195,24 @@ bun run typecheck
 `tests/releases.test.ts` cobre o `cleanReleaseNotes`: notas em HTML viram Markdown limpo (via parser do `@juninmd/digest-kit`) e texto simples passa sem alteração. Não há teste do inventário, do digest nem do envio — essas partes dependem de disco, rede e Telegram, e são verificadas rodando `bun run dev` e `bun run radar`.
 
 Não existe workflow de CI neste repositório: nenhum arquivo em `.github/workflows/`.
+
+## Imagens
+
+> [!NOTE]
+> **Mockups ilustrativos.** As telas abaixo foram geradas em HTML com dados fictícios (Playwright) e não são capturas de uma instalação real.
+
+<p align="center">
+  <img src="docs/readme/ranking.png" alt="Ranking por impacto — mockup ilustrativo com dados fictícios" width="100%">
+  <br>
+  <sub>Ranking por impacto — dados fictícios.</sub>
+</p>
+
+<p align="center">
+  <img src="docs/readme/alert.png" alt="Alerta classificado — mockup ilustrativo com dados fictícios" width="100%">
+  <br>
+  <sub>Alerta classificado — dados fictícios.</sub>
+</p>
+
 
 ## Limitações
 
