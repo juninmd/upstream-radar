@@ -80,17 +80,23 @@ export async function pollUpdates(
   }
 }
 
-function split(text: string, max: number): string[] {
+/** Quebra em blocos <= max, preferindo limites de linha; linha maior que max é cortada. */
+export function split(text: string, max: number): string[] {
   if (text.length <= max) return [text];
   const out: string[] = [];
   let buf = "";
+  const flush = () => {
+    if (buf) out.push(buf);
+    buf = "";
+  };
   for (const line of text.split("\n")) {
-    if (buf.length + line.length + 1 > max) {
-      out.push(buf);
-      buf = "";
+    // Linha gigante (resumo/notas da IA) estouraria o limite do Telegram sozinha.
+    for (let i = 0; i === 0 || i < line.length; i += max - 1) {
+      const parte = line.slice(i, i + max - 1);
+      if (buf.length + parte.length + 1 > max) flush();
+      buf += `${parte}\n`;
     }
-    buf += `${line}\n`;
   }
-  if (buf) out.push(buf);
+  flush();
   return out;
 }
