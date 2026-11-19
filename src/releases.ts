@@ -45,7 +45,7 @@ async function resolverRepo(uso: Uso): Promise<string> {
   return repo;
 }
 
-async function repoDoNpm(pacote: string): Promise<string> {
+export async function repoDoNpm(pacote: string): Promise<string> {
   // `/latest` devolve o manifest de uma versão só: tem `repository` e evita
   // baixar o documento completo (megabytes em pacotes antigos). O accept
   // abreviado do npm NÃO traz `repository` — por isso não é usado aqui.
@@ -54,7 +54,10 @@ async function repoDoNpm(pacote: string): Promise<string> {
     `https://registry.npmjs.org/${pacote.replace("/", "%2F")}/latest`,
     { signal: AbortSignal.timeout(15000) },
   );
-  if (!res.ok) return "";
+  // Só 404 é "pacote sem repo" (vai para o cache como ""); 429/5xx são
+  // transitórios e jogam erro para não banir o pacote do radar para sempre.
+  if (res.status === 404) return "";
+  if (!res.ok) throw new Error(`npm registry ${res.status}`);
   const json = (await res.json()) as {
     repository?: { url?: string } | string;
     homepage?: string;
