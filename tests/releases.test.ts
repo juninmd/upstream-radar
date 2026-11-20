@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { cleanReleaseNotes, repoDoNpm } from "../src/releases.ts";
+import { cleanReleaseNotes, releaseDoPacote, repoDoNpm } from "../src/releases.ts";
 
 describe("cleanReleaseNotes", () => {
   it("converte notas com HTML para Markdown limpo", () => {
@@ -50,5 +50,29 @@ describe("repoDoNpm", () => {
     await expect(repoDoNpm("hono")).rejects.toThrow("npm registry 429");
     respondWith(503);
     await expect(repoDoNpm("hono")).rejects.toThrow("npm registry 503");
+  });
+});
+
+describe("releaseDoPacote", () => {
+  const npm = (nome: string) => ({ tipo: "npm" as const, nome });
+
+  it("tag sem prefixo de pacote vale para o repo", () => {
+    expect(releaseDoPacote("v6.1.0", npm("vite"))).toBe(true);
+    expect(releaseDoPacote("6.1.0", npm("vite"))).toBe(true);
+  });
+
+  it("descarta release de outro pacote do mesmo monorepo", () => {
+    expect(releaseDoPacote("create-vite@6.1.0", npm("vite"))).toBe(false);
+    expect(releaseDoPacote("@astrojs/react@4.1.0", npm("astro"))).toBe(false);
+  });
+
+  it("mantém a release do pacote usado, com ou sem escopo", () => {
+    expect(releaseDoPacote("astro@5.1.0", npm("astro"))).toBe(true);
+    expect(releaseDoPacote("@astrojs/react@4.1.0", npm("@astrojs/react"))).toBe(true);
+    expect(releaseDoPacote("plugin-react@4.3.4", npm("@vitejs/plugin-react"))).toBe(true);
+  });
+
+  it("GitHub Action nunca é filtrada", () => {
+    expect(releaseDoPacote("checkout@v4", { tipo: "action", nome: "actions/checkout" })).toBe(true);
   });
 });
