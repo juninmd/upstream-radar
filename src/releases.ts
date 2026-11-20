@@ -100,6 +100,7 @@ async function buscarReleases(uso: Uso, repo: string): Promise<Release[]> {
       (r) =>
         !r.draft &&
         !r.prerelease &&
+        releaseDoPacote(r.tag_name, uso) &&
         // Backport de linha antiga (v3.7.0 para quem está no v4) não é novidade.
         major(r.tag_name) >= seuMajor &&
         !jaVisto(uso.chave, r.tag_name),
@@ -114,6 +115,19 @@ async function buscarReleases(uso: Uso, repo: string): Promise<Release[]> {
       corpo: cleanReleaseNotes(r.body ?? ""),
       majorNovo: major(r.tag_name) > major(uso.versao),
     }));
+}
+
+/**
+ * Monorepo com changesets publica uma release por pacote ("astro@5.1.0",
+ * "@astrojs/react@4.1.0", "create-vite@6.1.0"). Tag com prefixo de pacote só
+ * conta se o pacote for o que você usa; tag sem prefixo ("v6.1.0") vale para o repo.
+ */
+export function releaseDoPacote(tag: string, uso: Pick<Uso, "tipo" | "nome">): boolean {
+  if (uso.tipo !== "npm") return true;
+  const prefixo = tag.match(/^(.+)@v?\d/)?.[1]?.toLowerCase();
+  if (!prefixo) return true;
+  const nome = uso.nome.toLowerCase();
+  return prefixo === nome || prefixo === nome.split("/").pop();
 }
 
 /** Limpa notas de release que possam conter HTML usando o parser do @juninmd/digest-kit. */
