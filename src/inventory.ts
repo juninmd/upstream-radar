@@ -111,13 +111,25 @@ function coletarActions(
     } catch {
       continue;
     }
-    for (const m of conteudo.matchAll(/uses:\s*([\w.-]+\/[\w.-]+)@([\w.\-+/]+)/g)) {
-      const nome = m[1];
-      const versao = m[2];
-      if (!nome || !versao) continue;
+    for (const [nome, versao] of actionsDoWorkflow(conteudo)) {
       registrar(contagem, `action:${nome}`, "action", nome, repo, versao);
     }
   }
+}
+
+/**
+ * `uses:` de um workflow como [owner/repo, ref]. Action em subpasta
+ * (`github/codeql-action/init@v3`, `org/repo/.github/workflows/x.yml@main`)
+ * conta para o repo dela; antes a regex exigia "@" logo após owner/repo e
+ * essas actions (inclusive os workflows reutilizáveis) sumiam da watchlist.
+ */
+export function actionsDoWorkflow(conteudo: string): [string, string][] {
+  const out: [string, string][] = [];
+  for (const m of conteudo.matchAll(/uses:\s*["']?([\w.-]+)\/([\w.-]+)(?:\/[^@\s"']*)?@([\w.\-+/]+)/g)) {
+    const [, owner, repo, versao] = m;
+    if (owner && repo && versao) out.push([`${owner}/${repo}`, versao]);
+  }
+  return out;
 }
 
 function registrar(
