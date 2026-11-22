@@ -62,9 +62,17 @@ export async function repoDoNpm(pacote: string): Promise<string> {
     repository?: { url?: string } | string;
     homepage?: string;
   };
-  const bruto = urlDe(json.repository) || json.homepage || "";
-  const m = bruto.match(/github\.com[:/]([\w.-]+\/[\w.-]+?)(?:\.git|\/|#|$)/i);
-  return m?.[1] ?? "";
+  return repoGithubDe(urlDe(json.repository)) || repoGithubDe(json.homepage ?? "");
+}
+
+/**
+ * "owner/repo" a partir de uma URL do GitHub ou do atalho do npm
+ * ("github:owner/repo", "owner/repo"). "" quando não aponta para o GitHub.
+ */
+function repoGithubDe(bruto: string): string {
+  const url = bruto.match(/github\.com[:/]([\w.-]+\/[\w.-]+?)(?:\.git|\/|#|$)/i);
+  if (url) return url[1] ?? "";
+  return bruto.trim().match(/^(?:github:)?([\w.-]+\/[\w.-]+?)(?:\.git)?(?:#.*)?$/i)?.[1] ?? "";
 }
 
 const urlDe = (r: { url?: string } | string | undefined): string =>

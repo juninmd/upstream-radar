@@ -40,6 +40,20 @@ describe("repoDoNpm", () => {
     expect(await repoDoNpm("hono")).toBe("honojs/hono");
   });
 
+  it("aceita o atalho do npm (github:owner/repo e owner/repo)", async () => {
+    respondWith(200, { repository: "github:colinhacks/zod" });
+    expect(await repoDoNpm("zod")).toBe("colinhacks/zod");
+    respondWith(200, { repository: "sindresorhus/ky" });
+    expect(await repoDoNpm("ky")).toBe("sindresorhus/ky");
+  });
+
+  it("cai para a homepage quando o repository não é do GitHub", async () => {
+    respondWith(200, { repository: "gitlab:org/pkg", homepage: "https://github.com/org/pkg#readme" });
+    expect(await repoDoNpm("pkg")).toBe("org/pkg");
+    respondWith(200, { repository: "gitlab:org/pkg" });
+    expect(await repoDoNpm("pkg")).toBe("");
+  });
+
   it("404 vira string vazia (pacote sem repo, pode ir para o cache)", async () => {
     respondWith(404);
     expect(await repoDoNpm("nao-existe-xyz")).toBe("");
