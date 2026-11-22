@@ -84,12 +84,17 @@ Nova release: ${r.tag} (${r.nome})
 Notas:
 ${r.corpo || "(release sem notas)"}`,
   );
-  const acao = ["agir_agora", "agendar", "ignorar"].includes(out?.acao ?? "")
-    ? (out?.acao as string)
-    : "agendar";
+  return normalizarAnalise(out, r.nome);
+}
+
+/** O JSON da IA pode vir com tipos errados ("resumo": ["..."]); nunca deixa isso derrubar o lote. */
+export function normalizarAnalise(out: unknown, nome: string): Analise {
+  const o = (out && typeof out === "object" ? out : {}) as Record<string, unknown>;
+  const texto = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+  const acao = ["agir_agora", "agendar", "ignorar"].includes(texto(o.acao)) ? texto(o.acao) : "agendar";
   return {
-    resumo: out?.resumo?.trim() || r.nome,
-    impacto: out?.impacto?.trim() || "sem leitura da IA — confira as notas.",
+    resumo: texto(o.resumo) || nome,
+    impacto: texto(o.impacto) || "sem leitura da IA — confira as notas.",
     acao,
   };
 }
