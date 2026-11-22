@@ -94,7 +94,7 @@ async function buscarReleases(uso: Uso, repo: string): Promise<Release[]> {
     prerelease: boolean;
   }[];
 
-  const seuMajor = major(uso.versao);
+  const seuMajor = major(uso.versao) ?? 0;
   return lista
     .filter(
       (r) =>
@@ -102,7 +102,7 @@ async function buscarReleases(uso: Uso, repo: string): Promise<Release[]> {
         !r.prerelease &&
         releaseDoPacote(r.tag_name, uso) &&
         // Backport de linha antiga (v3.7.0 para quem está no v4) não é novidade.
-        major(r.tag_name) >= seuMajor &&
+        (major(r.tag_name) ?? 0) >= seuMajor &&
         !jaVisto(uso.chave, r.tag_name),
     )
     .map((r) => ({
@@ -113,7 +113,7 @@ async function buscarReleases(uso: Uso, repo: string): Promise<Release[]> {
       url: r.html_url,
       publicado: r.published_at ?? "",
       corpo: cleanReleaseNotes(r.body ?? ""),
-      majorNovo: major(r.tag_name) > major(uso.versao),
+      majorNovo: majorNovo(r.tag_name, uso.versao),
     }));
 }
 
@@ -142,7 +142,15 @@ export function cleanReleaseNotes(body: string): string {
   return body.slice(0, 3000);
 }
 
-/** Major da string de versão (aceita ^1.2.3, v2, ~3.0). 0 se não der pra ler. */
-function major(v: string): number {
-  return Number(v.replace(/^[^\d]*/, "").split(".")[0] ?? 0) || 0;
+/** Major da string de versão (aceita ^1.2.3, v2, ~3.0). null se não for semver (branch, SHA). */
+function major(v: string): number | null {
+  const m = v.trim().match(/^[\^~>=<\s]*v?(\d+)(?:\.|$)/i);
+  return m ? Number(m[1]) : null;
+}
+
+/** Só é "major novo" quando as duas versões são legíveis: @main ou @<sha> não têm major. */
+export function majorNovo(tag: string, versaoUsada: string): boolean {
+  const novo = major(tag);
+  const atual = major(versaoUsada);
+  return novo !== null && atual !== null && novo > atual;
 }
