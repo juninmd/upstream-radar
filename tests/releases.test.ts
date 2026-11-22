@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { cleanReleaseNotes, releaseDoPacote, repoDoNpm } from "../src/releases.ts";
+import { cleanReleaseNotes, majorNovo, releaseDoPacote, repoDoNpm } from "../src/releases.ts";
 
 describe("cleanReleaseNotes", () => {
   it("converte notas com HTML para Markdown limpo", () => {
@@ -88,5 +88,22 @@ describe("releaseDoPacote", () => {
 
   it("GitHub Action nunca é filtrada", () => {
     expect(releaseDoPacote("checkout@v4", { tipo: "action", nome: "actions/checkout" })).toBe(true);
+  });
+});
+
+describe("majorNovo", () => {
+  it("compara majors de versões semver", () => {
+    expect(majorNovo("v5.0.0", "^4.2.1")).toBe(true);
+    expect(majorNovo("v4.3.0", "~4.2")).toBe(false);
+    expect(majorNovo("v3", "v2")).toBe(true);
+  });
+
+  it("action fixada em branch ou SHA não vira major novo em toda release", () => {
+    expect(majorNovo("v3.7.0", "main")).toBe(false);
+    expect(majorNovo("v4.0.0", "a1b2c3d4e5f6")).toBe(false);
+  });
+
+  it("tag sem versão legível não é major novo", () => {
+    expect(majorNovo("nightly", "1.0.0")).toBe(false);
   });
 });
