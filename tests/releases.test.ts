@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { cleanReleaseNotes, majorNovo, releaseDoPacote, repoDoNpm } from "../src/releases.ts";
+import { cleanReleaseNotes, majorNovo, novidades, releaseDoPacote, repoDoNpm } from "../src/releases.ts";
 
 describe("cleanReleaseNotes", () => {
   it("converte notas com HTML para Markdown limpo", () => {
@@ -103,7 +103,46 @@ describe("majorNovo", () => {
     expect(majorNovo("v4.0.0", "a1b2c3d4e5f6")).toBe(false);
   });
 
+  it("lê o major de tag com prefixo de pacote (changesets)", () => {
+    expect(majorNovo("astro@6.0.0", "^5.1.0")).toBe(true);
+    expect(majorNovo("@astrojs/react@4.1.0", "^4.0.0")).toBe(false);
+  });
+
   it("tag sem versão legível não é major novo", () => {
     expect(majorNovo("nightly", "1.0.0")).toBe(false);
+  });
+});
+
+describe("novidades", () => {
+  const realFetch = globalThis.fetch;
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+  });
+
+  it("acha a release do pacote usado mesmo atrás de várias releases de outros pacotes do monorepo", async () => {
+    // Changesets: as 6 releases mais novas são de pacotes irmãos; a do pacote usado vem depois.
+    const rel = (tag: string, dia: number) => ({
+      tag_name: tag, name: tag, html_url: `https://x/${tag}`, body: "", draft: false, prerelease: false,
+      published_at: `2026-11-${String(dia).padStart(2, "0")}T00:00:00Z`,
+    });
+    // Nome único evita cache/vistos de outras execuções no SQLite local.
+    const nome = `astro-teste-${Date.now()}`;
+    const todas = [
+      ...["create-astro@4.11.1", "@astrojs/react@4.1.0", "@astrojs/vue@5.0.1", "@astrojs/mdx@4.0.3",
+        "@astrojs/node@9.0.1", "@astrojs/svelte@7.0.2"].map((t, i) => rel(t, 20 - i)),
+      rel(`${nome}@5.1.0`, 10),
+    ];
+    globalThis.fetch = (async (url: string | URL) => {
+      const u = String(url);
+      if (u.startsWith("https://registry.npmjs.org/")) {
+        return new Response(JSON.stringify({ repository: "github:withastro/astro" }));
+      }
+      const perPage = Number(new URL(u).searchParams.get("per_page") ?? 30);
+      return new Response(JSON.stringify(todas.slice(0, perPage)));
+    }) as unknown as typeof fetch;
+
+    const uso = { chave: `npm:${nome}`, tipo: "npm" as const, nome, repos: 1, versao: "^5.0.0" };
+    const lista = await novidades([uso]);
+    expect(lista.map((r) => r.tag)).toEqual([`${nome}@5.1.0`]);
   });
 });

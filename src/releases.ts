@@ -80,7 +80,9 @@ const urlDe = (r: { url?: string } | string | undefined): string =>
 
 async function buscarReleases(uso: Uso, repo: string): Promise<Release[]> {
   const res = await fetch(
-    `https://api.github.com/repos/${repo}/releases?per_page=${env.releasesPorProjeto}`,
+    // Página cheia: em monorepo com changesets, as N mais novas podem ser todas de
+    // pacotes irmãos; o limite por projeto vale depois do filtro (slice abaixo).
+    `https://api.github.com/repos/${repo}/releases?per_page=100`,
     {
       headers: {
         accept: "application/vnd.github+json",
@@ -113,6 +115,7 @@ async function buscarReleases(uso: Uso, repo: string): Promise<Release[]> {
         (major(r.tag_name) ?? 0) >= seuMajor &&
         !jaVisto(uso.chave, r.tag_name),
     )
+    .slice(0, env.releasesPorProjeto)
     .map((r) => ({
       uso,
       repo,
@@ -152,7 +155,8 @@ export function cleanReleaseNotes(body: string): string {
 
 /** Major da string de versão (aceita ^1.2.3, v2, ~3.0). null se não for semver (branch, SHA). */
 function major(v: string): number | null {
-  const m = v.trim().match(/^[\^~>=<\s]*v?(\d+)(?:\.|$)/i);
+  // Tag de changesets ("astro@5.1.0", "@astrojs/react@4.1.0"): o major vem depois do último "@".
+  const m = v.trim().replace(/^.+@(?=v?\d)/, "").match(/^[\^~>=<\s]*v?(\d+)(?:\.|$)/i);
   return m ? Number(m[1]) : null;
 }
 
