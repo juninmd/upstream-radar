@@ -22,3 +22,21 @@ describe("split", () => {
     expect(chunks.join("").replace(/\n/g, "")).toBe("x".repeat(25));
   });
 });
+
+describe("sendTelegram", () => {
+  it("lança quando o Telegram recusa, para quem chama não marcar como entregue", async () => {
+    const { env } = await import("../src/config/env.ts");
+    const { sendTelegram } = await import("../src/telegram.ts");
+    const salvo = { token: env.telegramToken, ids: env.telegramChatIds, fetch: globalThis.fetch };
+    env.telegramToken = "t";
+    env.telegramChatIds = ["1"];
+    globalThis.fetch = (async () => new Response("bad gateway", { status: 502 })) as unknown as typeof fetch;
+    try {
+      await expect(sendTelegram("oi")).rejects.toThrow("1 envio(s) falharam");
+    } finally {
+      env.telegramToken = salvo.token;
+      env.telegramChatIds = salvo.ids;
+      globalThis.fetch = salvo.fetch;
+    }
+  });
+});

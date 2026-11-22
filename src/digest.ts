@@ -51,13 +51,16 @@ export async function radar(): Promise<void> {
     return;
   }
 
+  const lote = releases.slice(0, 20);
+  // Só marca como vista depois da entrega: se o Telegram falhar, a próxima rodada reenvia.
+  const marcarLote = () => { for (const r of lote) marcarVisto(r.uso.chave, r.tag); };
   const analisados: (Release & { analise: Analise })[] = [];
-  for (const r of releases.slice(0, 20)) {
+  for (const r of lote) {
     const a = await analisar(r);
-    marcarVisto(r.uso.chave, r.tag);
     if (a.acao !== "ignorar" || r.majorNovo) analisados.push({ ...r, analise: a });
   }
   if (!analisados.length) {
+    marcarLote();
     console.log(`[radar] ${releases.length} releases, nenhuma relevante`);
     return;
   }
@@ -72,6 +75,7 @@ export async function radar(): Promise<void> {
   await sendTelegram(
     `📡 *Upstream radar* — ${analisados.length} novidade(s) que te tocam\n\n${blocos.join("\n\n")}`,
   );
+  marcarLote();
 }
 
 async function analisar(r: Release): Promise<Analise> {

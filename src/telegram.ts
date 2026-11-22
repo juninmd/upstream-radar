@@ -12,7 +12,7 @@ export type Update = {
   };
 };
 
-/** Envia Markdown; cai p/ texto puro se a marcação da IA quebrar. Sem token, loga. */
+/** Envia Markdown; cai p/ texto puro se a marcação da IA quebrar. Sem token, loga. Lança se algum envio falhar. */
 export async function sendTelegram(
   text: string,
   chatId?: string | number,
@@ -23,13 +23,19 @@ export async function sendTelegram(
     console.log(text);
     return;
   }
+  let falhas = 0;
   for (const id of alvos) {
     for (const chunk of split(text, 3800)) {
       let res = await send(id, chunk, "Markdown");
       if (res.status === 400) res = await send(id, chunk);
-      if (!res.ok) console.error(`[telegram] ${res.status}: ${await res.text()}`);
+      if (!res.ok) {
+        falhas++;
+        console.error(`[telegram] ${res.status}: ${await res.text()}`);
+      }
     }
   }
+  // Tenta todos os destinos, mas não finge sucesso: quem chama decide se reenvia.
+  if (falhas) throw new Error(`telegram: ${falhas} envio(s) falharam`);
 }
 
 function send(chatId: string, text: string, parseMode?: string): Promise<Response> {
